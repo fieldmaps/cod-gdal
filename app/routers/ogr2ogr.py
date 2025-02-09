@@ -3,8 +3,6 @@ from os import getenv
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-# from typing import Annotated
-# from fastapi import APIRouter, HTTPException, Query, status
 from fastapi import APIRouter, HTTPException, status
 
 S3_ASSETS_BUCKET = getenv("S3_ASSETS_BUCKET", "")
@@ -49,14 +47,8 @@ async def features(
     iso3: str,
     admin_level: int,
     f: str = "geojson",
-    # simplify: str | None = None,
-    # lco: Annotated[list[str] | None, Query()] = None,
 ) -> str:
-    """Convert features to other file format.
-
-    Returns:
-        Converted File.
-    """
+    """Convert features to other file format."""
     f = f.lower().lstrip(".")
     if f == "parquet":
         return "ok"
@@ -67,8 +59,6 @@ async def features(
     assets_bucket = f"{S3_ASSETS_BUCKET}/level-{processing_level}/{layer}.parquet"
     cache_bucket = f"{S3_CACHE_BUCKET}/level-{processing_level}/{layer}.{remote_format}"
     recommended_options = get_recommended_options(local_format)
-    # lco_options = [("-lco", x) for x in lco] if lco is not None else []
-    # simplify_options = ["-simplify", simplify] if simplify is not None else []
     with TemporaryDirectory() as tmp:
         input_path = Path(tmp) / f"{layer}.parquet"
         output_path = Path(tmp) / f"{layer}.{local_format}"
