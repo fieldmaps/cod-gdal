@@ -1,36 +1,26 @@
 name: Trigger auto deployment for cod-gdal
-
-# When this action will be executed
 on:
-  # Automatically trigger it when detected changes in repo
   push:
-    branches: 
-      [ main ]
+    branches: [main]
     paths:
-    - '**'
-    - '.github/workflows/cod-gdal-AutoDeployTrigger-16d051fb-58c1-4335-b83d-869d9796fc19.yml'
-
-  # Allow manual trigger 
-  workflow_dispatch:      
-
+      - "**"
+      - ".github/workflows/cod-gdal-AutoDeployTrigger-16d051fb-58c1-4335-b83d-869d9796fc19.yml"
+  workflow_dispatch:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions: 
-      id-token: write #This is required for requesting the OIDC JWT Token
-      contents: read #Required when GH token is used to authenticate with private repo
-
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Checkout to the branch
-        uses: actions/checkout@v2
-
+        uses: actions/checkout@v4
       - name: Azure Login
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
           client-id: ${{ secrets.CODGDAL_AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.CODGDAL_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.CODGDAL_AZURE_SUBSCRIPTION_ID }}
-
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
         with:
@@ -44,5 +34,3 @@ jobs:
           imageToBuild: fieldmaps.azurecr.io/cod-gdal:${{ github.sha }}
           _buildArgumentsKey_: |
             _buildArgumentsValues_
-
-
