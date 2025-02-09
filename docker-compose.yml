@@ -1,0 +1,9 @@
+services:
+  cod-gdal:
+    build: .
+    env_file: .env
+    ports:
+      - 8000:8000
+    volumes:
+      - ./app:/usr/src/app/app
+    command: fastapi dev app --host 0.0.0.0

@@ -1,0 +1,29 @@
+[project]
+name = "cod-api"
+version = "0.1.0"
+description = "API for COD-AB"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = ["fastapi", "fastapi-cli"]
+
+[dependency-groups]
+dev = ["ruff", "taskipy"]
+
+[tool.taskipy.tasks]
+app = "fastapi dev app"
+export = "uv sync -q && uv export -q -o requirements.txt --no-dev --no-hashes"
+ruff = "ruff format && ruff check && ruff format"
+
+[tool.ruff]
+fix = true
+target-version = "py313"
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D100", "D104", "INP", "S603", "S607"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

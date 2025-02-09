@@ -1,0 +1,8 @@
+__pycache__
+.env
+.ruff_cache
+.venv
+*.gpkg
+*.parquet
+stac
+stac-remote
