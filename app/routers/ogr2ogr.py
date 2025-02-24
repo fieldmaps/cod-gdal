@@ -38,6 +38,78 @@ def get_remote_format(remote_format: str) -> str:
 
 
 @router.get(
+    "/ogr2ogr/{processing_level}/{iso3}",
+    description="Get vector in any GDAL/OGR supported format",
+    tags=["vectors"],
+)
+async def features_all(
+    processing_level: str,
+    iso3: str,
+    f: str = "geojson",
+) -> str:
+    """Convert features to other file format."""
+    f = f.lower().lstrip(".")
+    if f == "parquet":
+        return "ok"
+    processing_level = processing_level.lower()
+    layer = f"{iso3}".lower()
+    local_format = get_local_format(f)
+    remote_format = get_remote_format(f)
+    assets_bucket = f"{S3_ASSETS_BUCKET}/level-{processing_level}/{layer}.parquet"
+    cache_bucket = f"{S3_CACHE_BUCKET}/level-{processing_level}/{layer}.{remote_format}"
+    recommended_options = get_recommended_options(local_format)
+    with TemporaryDirectory() as tmp:
+        input_path = Path(tmp) / f"{layer}.parquet"
+        output_path = Path(tmp) / f"{layer}.{local_format}"
+        rclone_download = await create_subprocess_exec(
+            "rclone",
+            "copyto",
+            *["--s3-chunk-size", S3_CHUNK_SIZE],
+            assets_bucket,
+            input_path,
+        )
+        await rclone_download.wait()
+        ogr2ogr = await create_subprocess_exec(
+            "ogr2ogr",
+            "-overwrite",
+            *["--config", "GDAL_NUM_THREADS", "ALL_CPUS"],
+            *["--config", "OGR_GEOJSON_MAX_OBJ_SIZE", "0"],
+            *["--config", "OGR_ORGANIZE_POLYGONS", "ONLY_CCW"],
+            *["-nln", layer],
+            # *simplify_options,
+            # *[x for y in lco_options for x in y],
+            *recommended_options,
+            output_path,
+            input_path,
+        )
+        await ogr2ogr.wait()
+        if output_path.stat().st_size == 0:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Unprocessable Content",
+            )
+        if output_path.is_dir():
+            output_zip = output_path.with_suffix(f".{f}.zip")
+            sozip = await create_subprocess_exec(
+                "sozip",
+                "-r",
+                output_zip,
+                output_path,
+            )
+            await sozip.wait()
+            output_path = output_zip
+        rclone_upload = await create_subprocess_exec(
+            "rclone",
+            "copyto",
+            *["--s3-chunk-size", S3_CHUNK_SIZE],
+            output_path,
+            cache_bucket,
+        )
+        await rclone_upload.wait()
+    return "ok"
+
+
+@router.get(
     "/ogr2ogr/{processing_level}/{iso3}/{admin_level}",
     description="Get vector in any GDAL/OGR supported format",
     tags=["vectors"],
